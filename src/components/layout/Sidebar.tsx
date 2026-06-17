@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useAlertStore } from '@/store/alertStore';
+import { useSimulatorStore } from '@/store/simulatorStore';
 import { ROLE_LABELS } from '@/constants/enums';
 import { cn } from '@/utils/cn';
 
@@ -31,6 +32,7 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
   const { session, logout } = useAuthStore();
   const { unreadCount } = useAlertStore();
+  const { isRunning, mode } = useSimulatorStore();
 
   function handleLogout() {
     logout();
@@ -89,15 +91,22 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
       </nav>
 
       {/* Live Indicator */}
-      <div className="mx-3 mb-3 px-3 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+      <div className={cn(
+        'mx-3 mb-3 px-3 py-2.5 rounded-lg border',
+        isRunning ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-700/20 border-slate-700/40'
+      )}>
         <div className="flex items-center gap-2">
           <div className="relative flex items-center justify-center shrink-0">
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
-            <div className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-60" />
+            <div className={cn('w-2 h-2 rounded-full', isRunning ? 'bg-emerald-400' : 'bg-slate-500')} />
+            {isRunning && <div className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-60" />}
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-emerald-400">Simulator Active</div>
-            <div className="text-[10px] text-slate-500">LTE demo mode · 5s interval</div>
+            <div className={cn('text-[11px] font-semibold', isRunning ? 'text-emerald-400' : 'text-slate-500')}>
+              {isRunning ? 'Simulator Active' : 'Simulator Stopped'}
+            </div>
+            <div className="text-[10px] text-slate-500">
+              {isRunning ? `LTE ${mode.replace(/_/g, ' ')} · 5s` : 'Click Start on Dashboard'}
+            </div>
           </div>
         </div>
       </div>

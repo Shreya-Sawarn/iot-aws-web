@@ -7,10 +7,10 @@ import { useSimulatorStore } from '@/store/simulatorStore';
 import { MOCK_WEATHER, MOCK_SITES } from '@/mock-data/seed';
 import { AvailabilityBadge, SeverityBadge } from '@/components/ui/StatusBadge';
 import { formatRelativeTime, formatBatteryV } from '@/utils/format';
-import { FAULT_CODE_MESSAGES, IRRIGATION_ADVISORY_LABELS, IRRIGATION_ADVISORY_COLORS } from '@/constants/enums';
+import { IRRIGATION_ADVISORY_LABELS } from '@/constants/enums';
 import {
   Radio, Wifi, WifiOff, AlertTriangle, Battery,
-  CloudRain, Activity, ArrowRight, Clock, Zap, Signal, Settings
+  CloudRain, Activity, ArrowRight, Clock, Signal
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/utils/cn';

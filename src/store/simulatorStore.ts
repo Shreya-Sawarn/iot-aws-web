@@ -92,6 +92,7 @@ export const useSimulatorStore = create<SimulatorState>()((set, get) => ({
         useDeviceStore.getState().updateLatestState(event.device_id, {
           availability: a.availability_state,
           stale_flag: a.availability_state !== 'online',
+          stale_age_sec: a.stale_age_sec,
           last_seen_at: a.last_seen_at,
           ...signalUpdate,
           updated_at: new Date().toISOString(),

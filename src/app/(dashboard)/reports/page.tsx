@@ -5,10 +5,10 @@ import { useDeviceStore } from '@/store/deviceStore';
 import { useCommandStore } from '@/store/commandStore';
 import { useAlertStore } from '@/store/alertStore';
 import { useAuthStore } from '@/store/authStore';
-import { MOCK_DEVICES, MOCK_LATEST_STATE, MOCK_SERVICE_RECORDS, generateTelemetryHistory } from '@/mock-data/seed';
+import { MOCK_SERVICE_RECORDS } from '@/mock-data/seed';
 import { FAULT_CODE_MESSAGES, COMMAND_TYPE_LABELS, ACK_STAGE_LABELS } from '@/constants/enums';
 import { AckStageBadge, SeverityBadge } from '@/components/ui/StatusBadge';
-import { formatRelativeTime, formatDateTime, formatBatteryV, formatDurationMs } from '@/utils/format';
+import { formatRelativeTime, formatDateTime, formatBatteryV, formatDurationMs, formatSignal } from '@/utils/format';
 import {
   BarChart3, Download, Activity, Battery, AlertTriangle, Radio,
   Wrench, Calendar, TrendingDown, Clock, CheckCircle, XCircle
@@ -190,7 +190,7 @@ export default function ReportsPage() {
                             {formatBatteryV(s.battery_v)}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-slate-300">{Math.round(s.signal_strength)}%</td>
+                        <td className="px-4 py-2.5 text-slate-300">{formatSignal(s.signal_strength)}</td>
                         <td className="px-4 py-2.5 text-slate-500">{formatRelativeTime(s.last_seen_at)}</td>
                       </tr>
                     );

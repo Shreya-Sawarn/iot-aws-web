@@ -111,11 +111,11 @@ export default function AlertsPage() {
                   'p-4 transition-colors hover:bg-slate-800/20',
                   !fault.is_active ? 'opacity-60' : ''
                 )}>
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-start gap-3">
+                  <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
                       <SeverityBadge severity={fault.severity} />
-                      <div>
-                        <div className="text-xs font-mono font-bold text-white">{fault.fault_code}</div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-mono font-bold text-white break-all">{fault.fault_code}</div>
                         <div className="text-xs text-slate-400 mt-0.5">{fault.description}</div>
                         {FAULT_CODE_MESSAGES[fault.fault_code] && (
                           <div className="text-[11px] text-slate-500 mt-1">{FAULT_CODE_MESSAGES[fault.fault_code]}</div>
