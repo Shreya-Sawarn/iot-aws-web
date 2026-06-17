@@ -27,7 +27,9 @@ Located in `c:\Users\shubh\Desktop\IOT Project\`:
 src/
   app/
     page.tsx                    → Root redirect (/ → /dashboard or /login)
-    (auth)/login/               → Login page
+    (auth)/login/               → Sign in (email + password)
+    (auth)/signup/              → Sign up (email + password + email verification)
+    (auth)/forgot-password/     → Forgot password (email → code → new password)
     (dashboard)/
       layout.tsx                → Auth guard + sidebar + topbar
       dashboard/page.tsx        → Main dashboard (/dashboard)
@@ -64,9 +66,18 @@ src/
 5. **Weather advisory** — advisory only, NEVER auto-control irrigation
 6. **Role access** — always check role before showing restricted actions
 7. **Stale/offline** — always show clearly, never show old data as live
+8. **Authentication is identity-only** — standard email + password (Sign In / Sign Up / Forgot Password), matching modern SaaS and AWS Cognito (email as username, email verification, password login, forgot-password flow). There is **no role selection at login or signup**, and no "login as Admin/Farmer/Operator" affordance. Role, tenant ownership and permissions are assigned at the application level *after* authentication and must never be added back into the auth flow (see Authentication Architecture below).
 
-## Demo Accounts
-| Email | Password | Role |
+## Authentication Architecture
+Auth is a single, role-agnostic identity flow, implemented in `src/store/authStore.ts` and `src/services/auth/authService.ts`:
+- **Sign In** (`/login`) — email + password
+- **Sign Up** (`/signup`) — email + password → email verification code → active account
+- **Forgot Password** (`/forgot-password`) — email → reset code → new password
+
+New accounts are created with a least-privilege default role (`read_only_auditor`) and an unassigned tenant (`TENANT_UNASSIGNED`). A tenant admin / invite flow upgrades role and tenant assignment afterward — this is an application-level step, not part of authentication.
+
+**Phase-1 mock accounts** (seeded test records for exercising role-gated UI in `src/mock-data/seed.ts` — not a login menu; sign in with these credentials the same way as any account):
+| Email | Password | Seeded Role |
 |-------|----------|------|
 | admin@orbipulse.com | Admin@123 | Founder / Admin |
 | farmer@orbipulse.com | Farmer@123 | Farmer |
@@ -87,13 +98,20 @@ npm run lint   # Lint check
 ## Future AWS Replacement Map
 | Current (Local) | Future (AWS) |
 |----------------|--------------|
-| authStore (fake) | Cognito + Amplify |
+| authStore (fake) | Cognito User Pool + Amplify |
 | mock API/seed | AppSync GraphQL |
 | deviceStore | DynamoDB LatestState |
 | commandStore | Lambda + AWS IoT Core |
 | lteSimulator | AWS IoT Core MQTT |
 | localStorage | DynamoDB |
 | reports (local) | Hostinger analytics |
+
+**Cognito User Pool configuration (Phase-2):**
+- Username attribute: **email** (no separate username field)
+- Email verification: **required** before first sign-in (`account_status: 'pending'` → `'active'`)
+- Login: **password-based** (`Cognito.signIn(email, password)`), no role/account-type selector in the Hosted UI or app sign-in form
+- Account recovery: standard **forgot-password** flow (`Cognito.forgotPassword` → `Cognito.forgotPasswordSubmit`)
+- Role, tenant ownership and any user classification are **not** Cognito sign-up attributes chosen by the user — they are set post-confirmation via a backend/admin process (e.g. a `custom:role` / `custom:tenant_id` attribute written by an invite or provisioning Lambda), and read by the app from the session/JWT claims, never from the auth form itself
 
 ## Simulator Modes
 - `demo_mode` — stable values, rare disconnects (default)
