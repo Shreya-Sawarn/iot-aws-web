@@ -22,8 +22,9 @@ const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
   { value: 'low_battery', label: 'Low Battery' },
 ];
 
-function SignalBars({ strength }: { strength: number }) {
-  const bars = strength >= 75 ? 4 : strength >= 50 ? 3 : strength >= 25 ? 2 : strength > 0 ? 1 : 0;
+function SignalBars({ strength }: { strength: number | undefined }) {
+  const s = strength ?? 0;
+  const bars = s >= 75 ? 4 : s >= 50 ? 3 : s >= 25 ? 2 : s > 0 ? 1 : 0;
   return (
     <div className="flex items-end gap-0.5">
       {[1, 2, 3, 4].map(b => (

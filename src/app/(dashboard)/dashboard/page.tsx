@@ -216,15 +216,15 @@ export default function DashboardPage() {
                     <div className="text-sm font-medium text-white truncate">{device.device_name}</div>
                     <div className="text-[11px] text-slate-500">{device.device_id} · {MOCK_SITES.find(s => s.site_id === device.site_id)?.site_name}</div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end max-w-[140px] sm:max-w-none">
                     <AvailabilityBadge state={state.availability} />
                     {state.manual_active && (
-                      <span className="px-1.5 py-0.5 text-[10px] rounded border bg-orange-500/10 text-orange-400 border-orange-500/20 font-medium">MANUAL</span>
+                      <span className="px-1.5 py-0.5 text-[10px] rounded border bg-orange-500/10 text-orange-400 border-orange-500/20 font-medium hidden sm:inline">MANUAL</span>
                     )}
                     {(state.active_fault_codes?.length ?? 0) > 0 && (
                       <span className="px-1.5 py-0.5 text-[10px] rounded border bg-red-500/10 text-red-400 border-red-500/20 font-medium">FAULT</span>
                     )}
-                    <div className="text-xs text-slate-500">{formatBatteryV(state.battery_v)}</div>
+                    <div className="text-xs text-slate-500 hidden sm:block">{formatBatteryV(state.battery_v)}</div>
                   </div>
                 </Link>
               );

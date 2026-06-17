@@ -211,33 +211,29 @@ export default function DeviceDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="max-w-6xl mx-auto space-y-4 fade-in">
       {/* Back + Header */}
-      <div className="flex items-start gap-4">
-        <button onClick={() => router.back()} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all mt-0.5">
+      <div className="flex items-start gap-3">
+        <button onClick={() => router.back()} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all mt-0.5 shrink-0">
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <div className="flex-1">
-          <div className="flex items-start justify-between flex-wrap gap-3">
-            <div>
-              <h2 className="text-xl font-bold text-white">{device.device_name}</h2>
-              <div className="text-sm text-slate-500 mt-0.5">{device.device_id} · {device.dsn} · {site?.site_name}</div>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <AvailabilityBadge state={state.availability} size="md" />
-              {isStale && (
-                <span className="px-2.5 py-1 text-xs rounded-lg border bg-yellow-500/10 text-yellow-400 border-yellow-500/20 font-medium">
-                  STALE {state.stale_age_sec ? `(${Math.floor(state.stale_age_sec / 60)}m ago)` : ''}
-                </span>
-              )}
-              {state.manual_active && (
-                <span className="px-2.5 py-1 text-xs rounded-lg border bg-orange-500/10 text-orange-400 border-orange-500/20 font-medium">MANUAL OVERRIDE</span>
-              )}
-              {state.wet_active && (
-                <span className="px-2.5 py-1 text-xs rounded-lg border bg-blue-500/10 text-blue-400 border-blue-500/20 font-medium">WET ACTIVE</span>
-              )}
-              {hasFault && (
-                <span className="px-2.5 py-1 text-xs rounded-lg border bg-red-500/10 text-red-400 border-red-500/20 font-medium">FAULT ACTIVE</span>
-              )}
-            </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg sm:text-xl font-bold text-white truncate">{device.device_name}</h2>
+          <div className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate">{device.device_id} · {device.dsn} · {site?.site_name}</div>
+          <div className="flex items-center gap-1.5 flex-wrap mt-2">
+            <AvailabilityBadge state={state.availability} size="md" />
+            {isStale && (
+              <span className="px-2 py-0.5 text-xs rounded-lg border bg-yellow-500/10 text-yellow-400 border-yellow-500/20 font-medium">
+                STALE {state.stale_age_sec ? `(${Math.floor(state.stale_age_sec / 60)}m)` : ''}
+              </span>
+            )}
+            {state.manual_active && (
+              <span className="px-2 py-0.5 text-xs rounded-lg border bg-orange-500/10 text-orange-400 border-orange-500/20 font-medium">MANUAL</span>
+            )}
+            {state.wet_active && (
+              <span className="px-2 py-0.5 text-xs rounded-lg border bg-blue-500/10 text-blue-400 border-blue-500/20 font-medium">WET</span>
+            )}
+            {hasFault && (
+              <span className="px-2 py-0.5 text-xs rounded-lg border bg-red-500/10 text-red-400 border-red-500/20 font-medium">FAULT</span>
+            )}
           </div>
         </div>
       </div>
@@ -265,9 +261,9 @@ export default function DeviceDetailPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left — Telemetry + Tabs */}
-        <div className="xl:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4">
           {/* Live Metrics */}
           <div className="bg-[#111827] border border-slate-800/60 rounded-xl p-4">
             <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
@@ -291,7 +287,22 @@ export default function DeviceDetailPage({ params }: { params: Promise<{ id: str
                 color={state.battery_state === 'good' ? 'text-emerald-400' : state.battery_state === 'low' ? 'text-yellow-400' : 'text-red-400'}
                 sub={state.battery_state}
               />
-              <MetricCard label="Signal" value={`${Math.round(state.signal_strength)}%`} icon={Signal} color="text-cyan-400" sub="LTE strength" />
+              <MetricCard
+                label="Signal"
+                value={state.signal_strength != null && !isNaN(state.signal_strength) ? `${Math.round(state.signal_strength)}%` : '—%'}
+                icon={Signal}
+                color="text-cyan-400"
+                sub="LTE strength"
+              />
+              {state.temperature_c !== undefined && (
+                <MetricCard
+                  label="Temperature"
+                  value={`${state.temperature_c.toFixed(1)}°C`}
+                  icon={Thermometer}
+                  color={state.temperature_c > 50 ? 'text-red-400' : state.temperature_c > 40 ? 'text-orange-400' : 'text-emerald-400'}
+                  sub={state.temperature_c > 50 ? 'Critical' : state.temperature_c > 40 ? 'Elevated' : 'Normal'}
+                />
+              )}
               {state.motor_current_a !== undefined && (
                 <MetricCard label="Motor Current" value={`${state.motor_current_a.toFixed(2)}A`} icon={Zap} color="text-orange-400" />
               )}

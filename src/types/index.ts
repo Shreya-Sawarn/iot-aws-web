@@ -286,6 +286,7 @@ export interface LatestState {
   stale_flag: boolean;
   stale_age_sec?: number;
   motor_current_a?: number;
+  temperature_c?: number;
   fault_code?: FaultCode | null;
   reason_code?: ReasonCode | null;
   active_fault_codes?: FaultCode[];

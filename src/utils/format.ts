@@ -26,7 +26,8 @@ export function formatBatteryV(v: number): string {
   return `${v.toFixed(1)}V`;
 }
 
-export function formatSignal(strength: number): string {
+export function formatSignal(strength: number | undefined | null): string {
+  if (strength == null || isNaN(strength)) return '—%';
   return `${Math.round(strength)}%`;
 }
 

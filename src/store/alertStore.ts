@@ -4,8 +4,13 @@
 // ============================================================
 
 import { create } from 'zustand';
-import type { DeviceEvent, Fault } from '@/types';
+import type { DeviceEvent, Fault, FaultCode, EventSeverity } from '@/types';
 import { MOCK_EVENTS, MOCK_FAULTS } from '@/mock-data/seed';
+
+let eventSeq = 10000;
+let faultSeq = 10000;
+function genEventId() { return `EVT-SIM-${Date.now()}-${++eventSeq}`; }
+function genFaultId() { return `FLT-SIM-${Date.now()}-${++faultSeq}`; }
 
 interface AlertState {
   events: DeviceEvent[];
@@ -14,7 +19,9 @@ interface AlertState {
 
   initialize: () => void;
   addEvent: (event: DeviceEvent) => void;
+  addFault: (fault: Fault) => void;
   clearFault: (fault_id: string, cleared_by: string) => void;
+  clearFaultByCode: (device_id: string, fault_code: FaultCode) => void;
   getActiveFaults: (tenant_id?: string) => Fault[];
   getActiveEvents: (tenant_id?: string) => DeviceEvent[];
   getDeviceEvents: (device_id: string) => DeviceEvent[];
@@ -44,11 +51,34 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
     }));
   },
 
+  addFault: (fault: Fault) => {
+    set(state => {
+      // deduplicate: if active fault for same device+code exists, skip
+      const exists = state.faults.some(f => f.device_id === fault.device_id && f.fault_code === fault.fault_code && f.is_active);
+      if (exists) return {};
+      return {
+        faults: [fault, ...state.faults],
+        unreadCount: state.unreadCount + 1,
+      };
+    });
+  },
+
   clearFault: (fault_id: string, cleared_by: string) => {
     set(state => ({
       faults: state.faults.map(f =>
         f.fault_id === fault_id
           ? { ...f, is_active: false, cleared_at: new Date().toISOString(), cleared_by }
+          : f
+      ),
+    }));
+  },
+
+  clearFaultByCode: (device_id: string, fault_code: FaultCode) => {
+    const now = new Date().toISOString();
+    set(state => ({
+      faults: state.faults.map(f =>
+        f.device_id === device_id && f.fault_code === fault_code && f.is_active
+          ? { ...f, is_active: false, cleared_at: now, cleared_by: 'simulator' }
           : f
       ),
     }));

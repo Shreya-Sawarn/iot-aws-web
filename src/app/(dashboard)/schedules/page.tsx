@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { MOCK_DEVICES, MOCK_SITES } from '@/mock-data/seed';
+import { MOCK_DEVICES, MOCK_SITES, MOCK_SCHEDULES } from '@/mock-data/seed';
 import { useDeviceStore } from '@/store/deviceStore';
 import { formatRelativeTime } from '@/utils/format';
 import { COMMAND_TYPE_LABELS } from '@/constants/enums';
@@ -10,104 +10,6 @@ import { CalendarDays, Plus, Clock, CheckCircle2, XCircle, AlertCircle, Pause, R
 import { cn } from '@/utils/cn';
 import type { Schedule, ScheduleStatus } from '@/types';
 
-// Mock schedule data (future: fetched from DynamoDB via AppSync)
-const now = Date.now();
-const MOCK_SCHEDULES: Schedule[] = [
-  {
-    schedule_id: 'SCH-001',
-    tenant_id: 'TENANT_DEMO_AGRI',
-    site_id: 'SITE_FARM_001',
-    device_id: 'D001',
-    schedule_name: 'Morning Irrigation — Borewell 1',
-    schedule_type: 'daily',
-    command_type: 'open',
-    planned_start_at: new Date(now + 6 * 3600000).toISOString(),
-    planned_duration_min: 45,
-    target_device_ids: ['D001', 'D002'],
-    schedule_status: 'planned',
-    water_confirmation_required: false,
-    enabled: true,
-    recurrence_rule: 'FREQ=DAILY;BYHOUR=6;BYMINUTE=0',
-    created_by: 'USR_FARMER_001',
-    created_at: new Date(now - 7 * 86400000).toISOString(),
-    updated_at: new Date(now - 86400000).toISOString(),
-  },
-  {
-    schedule_id: 'SCH-002',
-    tenant_id: 'TENANT_DEMO_AGRI',
-    site_id: 'SITE_FARM_001',
-    device_id: 'D001',
-    schedule_name: 'Evening Close — Borewell 1',
-    schedule_type: 'daily',
-    command_type: 'close',
-    planned_start_at: new Date(now + 12 * 3600000).toISOString(),
-    planned_duration_min: undefined,
-    target_device_ids: ['D001', 'D002'],
-    schedule_status: 'planned',
-    water_confirmation_required: false,
-    enabled: true,
-    recurrence_rule: 'FREQ=DAILY;BYHOUR=18;BYMINUTE=30',
-    created_by: 'USR_FARMER_001',
-    created_at: new Date(now - 7 * 86400000).toISOString(),
-    updated_at: new Date(now - 86400000).toISOString(),
-  },
-  {
-    schedule_id: 'SCH-003',
-    tenant_id: 'TENANT_DEMO_AGRI',
-    site_id: 'SITE_FARM_002',
-    device_id: 'D004',
-    schedule_name: 'Drip Irrigation — South Field (50%)',
-    schedule_type: 'weekly',
-    command_type: 'set_position',
-    target_position_pct: 50,
-    planned_start_at: new Date(now + 2 * 86400000).toISOString(),
-    planned_duration_min: 90,
-    target_device_ids: ['D004', 'D005'],
-    schedule_status: 'planned',
-    water_confirmation_required: true,
-    enabled: true,
-    recurrence_rule: 'FREQ=WEEKLY;BYDAY=MO,WE,FR',
-    created_by: 'USR_FARMER_001',
-    created_at: new Date(now - 3 * 86400000).toISOString(),
-    updated_at: new Date(now - 3 * 86400000).toISOString(),
-  },
-  {
-    schedule_id: 'SCH-004',
-    tenant_id: 'TENANT_DEMO_AGRI',
-    site_id: 'SITE_FARM_001',
-    device_id: 'D002',
-    schedule_name: 'One-time Emergency Open — Drip Line 2',
-    schedule_type: 'one_time',
-    command_type: 'open',
-    planned_start_at: new Date(now - 3600000).toISOString(),
-    planned_duration_min: 30,
-    target_device_ids: ['D002'],
-    schedule_status: 'confirmed',
-    water_confirmation_required: false,
-    enabled: false,
-    created_by: 'USR_FARMER_001',
-    created_at: new Date(now - 4 * 3600000).toISOString(),
-    updated_at: new Date(now - 3500000).toISOString(),
-  },
-  {
-    schedule_id: 'SCH-005',
-    tenant_id: 'TENANT_DEMO_AGRI',
-    site_id: 'SITE_FARM_002',
-    device_id: 'D005',
-    schedule_name: 'Weekly Calibration — Field South Valve',
-    schedule_type: 'weekly',
-    command_type: 'calibrate',
-    planned_start_at: new Date(now - 86400000).toISOString(),
-    target_device_ids: ['D005'],
-    schedule_status: 'failed',
-    water_confirmation_required: false,
-    enabled: false,
-    recurrence_rule: 'FREQ=WEEKLY;BYDAY=SU',
-    created_by: 'USR_ADMIN_001',
-    created_at: new Date(now - 14 * 86400000).toISOString(),
-    updated_at: new Date(now - 86000000).toISOString(),
-  },
-];
 
 const STATUS_CONFIG: Record<ScheduleStatus, { label: string; color: string; icon: React.ElementType }> = {
   planned: { label: 'Planned', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Clock },
