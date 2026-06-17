@@ -59,7 +59,7 @@ src/
 ## Critical Rules
 1. **NO FALSE SUCCESS** — only show success after `ack_stage = 'completed'`
 2. **Pure LTE** — no WiFi assumptions in simulator
-3. **MQTT contract** — topics: `orbipulse/v1/{tenant_id}/{site_id}/{device_id}/{msg_type}`
+3. **MQTT contract** — frozen; defined in DOC#6.9 / `23_MQTT_Topic_Map` (see MQTT Contract Reference below). Do not invent or republish topic strings outside `src/constants/mqtt.ts`
 4. **JSON naming** — snake_case only
 5. **Weather advisory** — advisory only, NEVER auto-control irrigation
 6. **Role access** — always check role before showing restricted actions
@@ -103,13 +103,29 @@ npm run lint   # Lint check
 - `gateway_mode` — OrbiHub child-device routing
 - `replay_mode` — replay saved fixtures
 
-## MQTT Topic Map (DOC#6.9)
-```
-orbipulse/v1/{tenant_id}/{site_id}/{device_id}/telemetry
-orbipulse/v1/{tenant_id}/{site_id}/{device_id}/command
-orbipulse/v1/{tenant_id}/{site_id}/{device_id}/ack
-orbipulse/v1/{tenant_id}/{site_id}/{device_id}/event
-orbipulse/v1/{tenant_id}/{site_id}/{device_id}/availability
-orbipulse/v1/{tenant_id}/{site_id}/{device_id}/diagnostic
-orbipulse/v1/{tenant_id}/{site_id}/{device_id}/ota/status
-```
+## MQTT Contract Reference
+MQTT topics, payload schemas, ACK stages, fault codes, reason codes and event IDs are defined exclusively in the approved contract documents — they are **not** reproduced here:
+- `DOC#6.9` (Combined_DOC6, §3.2 MQTT topic map)
+- `23_MQTT_Topic_Map`
+
+The single canonical, executable implementation of the topic pattern lives in [`src/constants/mqtt.ts`](src/constants/mqtt.ts) (`buildTopic`, `topics`). All other code (including `src/types/index.ts`) must reuse that implementation rather than building topic strings independently. Any new field, command, ACK stage, event code, reason code or fault code requires owner-approved contract revision — see the source documents above, not this file.
+
+## Authority Allocation (DOC-CLD-012)
+The AWS/Hostinger split below is the approved cloud architecture baseline. It governs *cloud-side* responsibilities only — device safety and physical motion remain under firmware/gateway authority per DOC#6.9, independent of this split.
+
+**AWS shall host:**
+- Device connectivity — IoT Core, device certificates, device authentication, MQTT broker, MQTT routing
+- Device management — identity, registry, command tracking, command acknowledgements, online/offline status
+- Mobile/web app services — Cognito authentication, user/role management, AppSync APIs, latest device state
+- OTA infrastructure — firmware packages, package validation, download authorization
+- Operational database — **latest state only** (battery, position, faults, communication status, last telemetry, last command status)
+- AWS shall **not** become the primary analytics engine
+
+**Hostinger shall host:**
+- Corporate website and product pages
+- Customer portal (future) — reports, downloads, documentation, service records
+- Analytics engine — irrigation/municipal analytics, historical trend analysis, battery life calculations, condition monitoring summaries, predictive maintenance
+- Reporting engine — PDF/Excel exports, AMC reports, municipal reports, water usage reports
+- Historical database — long-term telemetry (battery history, valve movement history, water usage history, alarm history)
+
+Functions frozen to AWS (must never move to Hostinger): MQTT broker, device certificates, device authentication, command routing, command acknowledgement lifecycle, OTA package authorization, user authentication, device ownership validation, active device state.

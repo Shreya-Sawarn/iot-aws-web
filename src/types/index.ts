@@ -2,7 +2,15 @@
 // ORBIPULSE / ORBIDRIVE - COMPLETE TYPE SYSTEM
 // Source: SW-DATA-001, SW-ENUM-001, DOC#6.9, DOC-SW-APP-001
 // Future-compatible with AWS Cognito, AppSync, DynamoDB, IoT Core
+//
+// GOVERNANCE: MQTT topics, payload schemas, ACK stages, fault codes,
+// reason codes and event IDs are FROZEN per the owner-approved contract
+// documents (DOC#6.9 / 23_MQTT_Topic_Map). Any new field, command, ACK
+// stage, event code, reason code or fault code requires a contract
+// revision in those source documents, not an edit here.
 // ============================================================
+
+import { topics } from '@/constants/mqtt';
 
 // ─── ENUMS (from SW-ENUM-001) ────────────────────────────────
 
@@ -541,6 +549,10 @@ export interface AuthSession {
 }
 
 // ─── MQTT TOPIC HELPERS ──────────────────────────────────────
+// Canonical topic-string construction lives in src/constants/mqtt.ts
+// (FROZEN — DOC#6.9 / 23_MQTT_Topic_Map). This helper only adapts that
+// single source into the MqttTopics shape; it must not reconstruct
+// topic strings independently.
 
 export interface MqttTopics {
   telemetry: string;
@@ -553,14 +565,14 @@ export interface MqttTopics {
 }
 
 export function getMqttTopics(tenant_id: string, site_id: string, device_id: string): MqttTopics {
-  const base = `orbipulse/v1/${tenant_id}/${site_id}/${device_id}`;
+  const params = { tenant_id, site_id, device_id };
   return {
-    telemetry: `${base}/telemetry`,
-    command: `${base}/command`,
-    ack: `${base}/ack`,
-    event: `${base}/event`,
-    availability: `${base}/availability`,
-    diagnostic: `${base}/diagnostic`,
-    ota_status: `${base}/ota/status`,
+    telemetry: topics.telemetry(params),
+    command: topics.command(params),
+    ack: topics.ack(params),
+    event: topics.event(params),
+    availability: topics.availability(params),
+    diagnostic: topics.diagnostic(params),
+    ota_status: topics.otaStatus(params),
   };
 }
