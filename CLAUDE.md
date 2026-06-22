@@ -27,8 +27,7 @@ Located in `c:\Users\shubh\Desktop\IOT Project\`:
 src/
   app/
     page.tsx                    → Root redirect (/ → /dashboard or /login)
-    (auth)/login/               → Sign in (email + password)
-    (auth)/signup/              → Sign up (email + password + email verification)
+    (auth)/login/               → Sign in (email + password) — no public signup
     (auth)/forgot-password/     → Forgot password (email → code → new password)
     (dashboard)/
       layout.tsx                → Auth guard + sidebar + topbar
@@ -66,17 +65,29 @@ src/
 5. **Weather advisory** — advisory only, NEVER auto-control irrigation
 6. **Role access** — always check role before showing restricted actions
 7. **Stale/offline** — always show clearly, never show old data as live
-8. **Authentication is identity-only** — standard email + password (Sign In / Sign Up / Forgot Password), matching modern SaaS and AWS Cognito (email as username, email verification, password login, forgot-password flow). There is **no role selection at login or signup**, and no "login as Admin/Farmer/Operator" affordance. Role, tenant ownership and permissions are assigned at the application level *after* authentication and must never be added back into the auth flow (see Authentication Architecture below).
+8. **No public signup** — accounts are created or approved only by E-Actuell or a tenant authority (Phase-1: pre-provisioned in `mock-data/seed.ts`; Phase-2: Cognito `AdminCreateUser` via an internal admin tool — never a public route). There is **no role selection at login**, and no "login as Admin/Farmer/Operator" affordance.
+9. **Maintainer access is not global** — every permission is scoped by `tenant_id + site_id/zone_id + device_id + role + validity period` via `session.access_grants` (see Authorization Architecture below). No role, including admin roles, receives an unconditional bypass.
 
 ## Authentication Architecture
-Auth is a single, role-agnostic identity flow, implemented in `src/store/authStore.ts` and `src/services/auth/authService.ts`:
-- **Sign In** (`/login`) — email + password
-- **Sign Up** (`/signup`) — email + password → email verification code → active account
+Auth is identity-only, implemented in `src/store/authStore.ts` and `src/services/auth/authService.ts`:
+- **Sign In** (`/login`) — email + password, for accounts that already exist
 - **Forgot Password** (`/forgot-password`) — email → reset code → new password
 
-New accounts are created with a least-privilege default role (`read_only_auditor`) and an unassigned tenant (`TENANT_UNASSIGNED`). A tenant admin / invite flow upgrades role and tenant assignment afterward — this is an application-level step, not part of authentication.
+There is no sign-up flow. `signUp`/`confirmSignUp`/self-registration, the `signupUsers`/`signupCredentials` client-persisted identity overlay, the `TENANT_UNASSIGNED` sentinel, and the automatic `read_only_auditor` default-role assignment have all been removed — accounts must already exist (in `MOCK_USERS`/Cognito) before a login attempt can succeed.
 
-**Phase-1 mock accounts** (seeded test records for exercising role-gated UI in `src/mock-data/seed.ts` — not a login menu; sign in with these credentials the same way as any account):
+## Authorization Architecture
+Authorization is **not** a flat role. Every permission is a scoped, time-bounded `AccessGrant` (`src/types/index.ts`):
+```ts
+{ grant_id, user_id, tenant_id, site_id?, zone_id?, device_id?, role, valid_from, valid_until }
+```
+- A session holds `access_grants: AccessGrant[]` — a user may hold many, across tenants/sites/devices.
+- `session.user.role` / `session.user.tenant_id` remain for backward-compatible display only — they are never the authorization source of truth.
+- `authStore.hasRole(roles, scope?)` — with no `scope`, behaves exactly as the old flat check (existing call sites unaffected); with a `scope` (`tenant_id`/`site_id`/`zone_id`/`device_id`), checks for an active, currently-valid grant matching that scope.
+- `authStore.canAccessDevice(device_id)` — default-deny; resolves the device's tenant/site and checks for a matching active grant. No admin/maintainer role bypasses this.
+- Phase-1: grants are seeded in `MOCK_ACCESS_GRANTS` (`mock-data/seed.ts`), mirroring each demo account's existing role/tenant/site. Phase-2: backed by a `UserAccessGrants` DynamoDB table, resolved via AppSync pipeline resolvers — never a Cognito Group or custom attribute (insufficient for multi-row, time-bounded, device-scoped grants).
+- `zone_id` is structurally supported on `AccessGrant` but not yet enforceable against any device — no `Site`/`Device` record carries a `zone_id` today. Flagged as an open item, not silently assumed.
+
+**Phase-1 mock accounts** (pre-provisioned test records for exercising role-gated UI in `src/mock-data/seed.ts` — not a login menu; sign in with these credentials the same way as any account):
 | Email | Password | Seeded Role |
 |-------|----------|------|
 | admin@orbipulse.com | Admin@123 | Founder / Admin |
@@ -98,7 +109,8 @@ npm run lint   # Lint check
 ## Future AWS Replacement Map
 | Current (Local) | Future (AWS) |
 |----------------|--------------|
-| authStore (fake) | Cognito User Pool + Amplify |
+| authStore (fake) | Cognito User Pool (identity only) + Amplify |
+| MOCK_ACCESS_GRANTS | DynamoDB `UserAccessGrants` table |
 | mock API/seed | AppSync GraphQL |
 | deviceStore | DynamoDB LatestState |
 | commandStore | Lambda + AWS IoT Core |
@@ -108,10 +120,11 @@ npm run lint   # Lint check
 
 **Cognito User Pool configuration (Phase-2):**
 - Username attribute: **email** (no separate username field)
-- Email verification: **required** before first sign-in (`account_status: 'pending'` → `'active'`)
-- Login: **password-based** (`Cognito.signIn(email, password)`), no role/account-type selector in the Hosted UI or app sign-in form
+- **Self-registration disabled.** Accounts created via `Cognito.AdminCreateUser`, called only from an internal admin tool by E-Actuell staff or a tenant authority (scoped to their own tenant) — never from a public route
+- First sign-in: Cognito's standard `FORCE_CHANGE_PASSWORD` challenge after an admin-issued temporary password
+- Login: **password-based** (`Cognito.signIn(email, password)`), no role/account-type selector anywhere in the sign-in form
 - Account recovery: standard **forgot-password** flow (`Cognito.forgotPassword` → `Cognito.forgotPasswordSubmit`)
-- Role, tenant ownership and any user classification are **not** Cognito sign-up attributes chosen by the user — they are set post-confirmation via a backend/admin process (e.g. a `custom:role` / `custom:tenant_id` attribute written by an invite or provisioning Lambda), and read by the app from the session/JWT claims, never from the auth form itself
+- Cognito is identity verification only. Role/tenant/site/device authorization is **never** a Cognito Group or custom attribute — it is resolved from the `UserAccessGrants` DynamoDB table via AppSync pipeline resolvers, keyed by the verified `sub` claim
 
 ## Simulator Modes
 - `demo_mode` — stable values, rare disconnects (default)

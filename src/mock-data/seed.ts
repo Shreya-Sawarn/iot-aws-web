@@ -5,8 +5,8 @@
 // ============================================================
 
 import type {
-  Tenant, User, Site, Device, LatestState, Command, CommandAck,
-  DeviceEvent, Fault, Schedule, WeatherCache, TelemetryHistory, ServiceRecord
+  Tenant, User, Site, Zone, Device, LatestState, Command, CommandAck,
+  DeviceEvent, Fault, Schedule, WeatherCache, TelemetryHistory, ServiceRecord, AccessGrant
 } from '@/types';
 
 // ─── TENANTS ─────────────────────────────────────────────────
@@ -118,6 +118,40 @@ export const MOCK_CREDENTIALS: Record<string, string> = {
   'operator@orbipulse.com': 'Operator@123',
 };
 
+// ─── ACCESS GRANTS ───────────────────────────────────────────
+// Mirrors each MOCK_USERS entry's existing role/tenant_id/assigned_site_ids
+// exactly, as long-valid grants (no expiry behavior change from today).
+// These represent accounts already provisioned by E-Actuell / tenant
+// authority — not self-registered. device_id is left unset (not
+// restricted below site level) since no current account has device-level
+// restriction; zone_id is left unset since no Site/Device record in this
+// dataset carries a zone_id yet.
+
+const FAR_FUTURE = '2099-12-31T23:59:59.000Z';
+
+export const MOCK_ACCESS_GRANTS: AccessGrant[] = [
+  // USR_ADMIN_001 — founder_admin — spans both demo tenants (admin's
+  // assigned_site_ids today includes a municipal site outside their own
+  // tenant_id, so two grants are needed to cover the same scope).
+  { grant_id: 'GRANT-001', user_id: 'USR_ADMIN_001', tenant_id: 'TENANT_DEMO_AGRI', site_id: 'SITE_FARM_001', role: 'founder_admin', valid_from: '2026-01-01T00:00:00.000Z', valid_until: FAR_FUTURE },
+  { grant_id: 'GRANT-002', user_id: 'USR_ADMIN_001', tenant_id: 'TENANT_DEMO_AGRI', site_id: 'SITE_FARM_002', role: 'founder_admin', valid_from: '2026-01-01T00:00:00.000Z', valid_until: FAR_FUTURE },
+  { grant_id: 'GRANT-003', user_id: 'USR_ADMIN_001', tenant_id: 'TENANT_DEMO_MUNI', site_id: 'SITE_MUNI_001', role: 'founder_admin', valid_from: '2026-01-01T00:00:00.000Z', valid_until: FAR_FUTURE },
+
+  // USR_FARMER_001 — farmer — TENANT_DEMO_AGRI, two sites
+  { grant_id: 'GRANT-004', user_id: 'USR_FARMER_001', tenant_id: 'TENANT_DEMO_AGRI', site_id: 'SITE_FARM_001', role: 'farmer', valid_from: '2026-01-15T08:00:00.000Z', valid_until: FAR_FUTURE },
+  { grant_id: 'GRANT-005', user_id: 'USR_FARMER_001', tenant_id: 'TENANT_DEMO_AGRI', site_id: 'SITE_FARM_002', role: 'farmer', valid_from: '2026-01-15T08:00:00.000Z', valid_until: FAR_FUTURE },
+
+  // USR_INSTALLER_001 — installer — TENANT_DEMO_AGRI, single site
+  { grant_id: 'GRANT-006', user_id: 'USR_INSTALLER_001', tenant_id: 'TENANT_DEMO_AGRI', site_id: 'SITE_FARM_001', role: 'installer', valid_from: '2026-01-20T08:00:00.000Z', valid_until: FAR_FUTURE },
+
+  // USR_SERVICE_001 — service_technician — TENANT_DEMO_AGRI, two sites
+  { grant_id: 'GRANT-007', user_id: 'USR_SERVICE_001', tenant_id: 'TENANT_DEMO_AGRI', site_id: 'SITE_FARM_001', role: 'service_technician', valid_from: '2026-02-01T08:00:00.000Z', valid_until: FAR_FUTURE },
+  { grant_id: 'GRANT-008', user_id: 'USR_SERVICE_001', tenant_id: 'TENANT_DEMO_AGRI', site_id: 'SITE_FARM_002', role: 'service_technician', valid_from: '2026-02-01T08:00:00.000Z', valid_until: FAR_FUTURE },
+
+  // USR_MUNI_001 — municipal_operator — TENANT_DEMO_MUNI, single site
+  { grant_id: 'GRANT-009', user_id: 'USR_MUNI_001', tenant_id: 'TENANT_DEMO_MUNI', site_id: 'SITE_MUNI_001', role: 'municipal_operator', valid_from: '2026-02-05T08:00:00.000Z', valid_until: FAR_FUTURE },
+];
+
 // ─── SITES ───────────────────────────────────────────────────
 
 export const MOCK_SITES: Site[] = [
@@ -159,6 +193,68 @@ export const MOCK_SITES: Site[] = [
   },
 ];
 
+// ─── ZONES ───────────────────────────────────────────────────
+// Frozen hierarchy: Tenant -> Site -> Zone -> Device. Every device below
+// carries exactly one zone_id, matching one of these zones.
+
+export const MOCK_ZONES: Zone[] = [
+  {
+    zone_id: 'ZONE_FARM001_A',
+    tenant_id: 'TENANT_DEMO_AGRI',
+    site_id: 'SITE_FARM_001',
+    zone_name: 'Borewell Zone',
+    zone_type: 'borewell',
+    lat: 13.3409,
+    lon: 74.7421,
+    created_at: '2026-01-20T08:00:00.000Z',
+    updated_at: '2026-06-10T10:00:00.000Z',
+  },
+  {
+    zone_id: 'ZONE_FARM001_B',
+    tenant_id: 'TENANT_DEMO_AGRI',
+    site_id: 'SITE_FARM_001',
+    zone_name: 'Sprinkler Zone A',
+    zone_type: 'sprinkler',
+    lat: 13.3415,
+    lon: 74.7418,
+    created_at: '2026-01-22T09:00:00.000Z',
+    updated_at: '2026-06-10T10:00:00.000Z',
+  },
+  {
+    zone_id: 'ZONE_FARM002_A',
+    tenant_id: 'TENANT_DEMO_AGRI',
+    site_id: 'SITE_FARM_002',
+    zone_name: 'South Field Zone',
+    zone_type: 'mixed',
+    lat: 13.3398,
+    lon: 74.7445,
+    created_at: '2026-02-01T10:00:00.000Z',
+    updated_at: '2026-06-10T10:00:00.000Z',
+  },
+  {
+    zone_id: 'ZONE_MUNI001_4A',
+    tenant_id: 'TENANT_DEMO_MUNI',
+    site_id: 'SITE_MUNI_001',
+    zone_name: 'Zone 4A',
+    zone_type: 'distribution',
+    lat: 13.3316,
+    lon: 74.7459,
+    created_at: '2026-02-10T08:00:00.000Z',
+    updated_at: '2026-06-10T10:00:00.000Z',
+  },
+  {
+    zone_id: 'ZONE_MUNI001_4B',
+    tenant_id: 'TENANT_DEMO_MUNI',
+    site_id: 'SITE_MUNI_001',
+    zone_name: 'Zone 4B',
+    zone_type: 'distribution',
+    lat: 13.3320,
+    lon: 74.7462,
+    created_at: '2026-02-10T09:00:00.000Z',
+    updated_at: '2026-06-10T10:00:00.000Z',
+  },
+];
+
 // ─── DEVICES ─────────────────────────────────────────────────
 
 export const MOCK_DEVICES: Device[] = [
@@ -166,6 +262,7 @@ export const MOCK_DEVICES: Device[] = [
     device_id: 'D001',
     tenant_id: 'TENANT_DEMO_AGRI',
     site_id: 'SITE_FARM_001',
+    zone_id: 'ZONE_FARM001_A',
     device_name: 'Borewell Valve 1',
     product_variant: 'orbidrive_agriculture',
     hw_revision: 'HW-REV-B1',
@@ -186,6 +283,7 @@ export const MOCK_DEVICES: Device[] = [
     device_id: 'D002',
     tenant_id: 'TENANT_DEMO_AGRI',
     site_id: 'SITE_FARM_001',
+    zone_id: 'ZONE_FARM001_A',
     device_name: 'Drip Line Valve 2',
     product_variant: 'orbidrive_agriculture',
     hw_revision: 'HW-REV-B1',
@@ -206,6 +304,7 @@ export const MOCK_DEVICES: Device[] = [
     device_id: 'D003',
     tenant_id: 'TENANT_DEMO_AGRI',
     site_id: 'SITE_FARM_001',
+    zone_id: 'ZONE_FARM001_B',
     device_name: 'Sprinkler Zone A',
     product_variant: 'orbidrive_agriculture',
     hw_revision: 'HW-REV-B1',
@@ -226,6 +325,7 @@ export const MOCK_DEVICES: Device[] = [
     device_id: 'D004',
     tenant_id: 'TENANT_DEMO_AGRI',
     site_id: 'SITE_FARM_002',
+    zone_id: 'ZONE_FARM002_A',
     device_name: 'Borewell Valve 3',
     product_variant: 'orbidrive_agriculture',
     hw_revision: 'HW-REV-B2',
@@ -246,6 +346,7 @@ export const MOCK_DEVICES: Device[] = [
     device_id: 'D005',
     tenant_id: 'TENANT_DEMO_AGRI',
     site_id: 'SITE_FARM_002',
+    zone_id: 'ZONE_FARM002_A',
     device_name: 'Field Valve South',
     product_variant: 'orbidrive_agriculture',
     hw_revision: 'HW-REV-B2',
@@ -266,6 +367,7 @@ export const MOCK_DEVICES: Device[] = [
     device_id: 'D006',
     tenant_id: 'TENANT_DEMO_MUNI',
     site_id: 'SITE_MUNI_001',
+    zone_id: 'ZONE_MUNI001_4A',
     device_name: 'Zone 4A Distribution Valve',
     product_variant: 'orbidrive_municipal',
     hw_revision: 'HW-REV-C1',
@@ -286,6 +388,7 @@ export const MOCK_DEVICES: Device[] = [
     device_id: 'D007',
     tenant_id: 'TENANT_DEMO_MUNI',
     site_id: 'SITE_MUNI_001',
+    zone_id: 'ZONE_MUNI001_4B',
     device_name: 'Zone 4B Pressure Valve',
     product_variant: 'orbidrive_municipal',
     hw_revision: 'HW-REV-C1',

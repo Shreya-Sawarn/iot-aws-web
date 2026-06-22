@@ -141,11 +141,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-400 mt-6">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
-              Sign up
-            </Link>
+          <p className="text-center text-xs text-slate-500 mt-6">
+            Accounts are created by E-Actuell or your tenant administrator.
           </p>
 
           <p className="text-center text-xs text-slate-600 mt-8">

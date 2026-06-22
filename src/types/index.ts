@@ -255,10 +255,29 @@ export interface Site {
   updated_at: string;
 }
 
+// Frozen hierarchy: Tenant -> Site -> Zone -> Device. Zone is a first-class
+// entity (not a text attribute) sitting between Site and Device.
+export interface Zone {
+  zone_id: string;
+  tenant_id: string;
+  site_id: string;
+  zone_name: string;
+  zone_type?: string;
+  lat?: number;
+  lon?: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Device {
   device_id: string;
   tenant_id: string;
   site_id: string;
+  // Required, not optional: the hierarchy is frozen as Tenant -> Site ->
+  // Zone -> Device, the same way site_id above is required rather than
+  // optional. zone_id is denormalized here for direct lookup; Zone above
+  // remains the canonical record.
+  zone_id: string;
   gateway_id?: string;
   device_name: string;
   product_variant: 'orbidrive_agriculture' | 'orbidrive_municipal' | 'orbidrive_industrial';
@@ -546,6 +565,27 @@ export interface AuthSession {
   access_token: string;
   expires_at: string;
   is_authenticated: boolean;
+  // Source of truth for authorization. `user.role` / `user.tenant_id` above
+  // remain for backward compatibility and display only — see authStore.ts.
+  access_grants: AccessGrant[];
+}
+
+// Scoped, time-bounded permission. A user may hold many of these — across
+// tenants, sites/zones and devices. Per owner-approved model: every
+// permission is scoped by tenant_id + site_id/zone_id + device_id + role +
+// validity period. Omitting site_id/zone_id/device_id means "not further
+// restricted within the parent scope" (e.g. tenant_id only + no site_id =
+// all sites in that tenant).
+export interface AccessGrant {
+  grant_id: string;
+  user_id: string;
+  tenant_id: string;
+  site_id?: string;
+  zone_id?: string;
+  device_id?: string;
+  role: UserRole;
+  valid_from: string;
+  valid_until: string;
 }
 
 // ─── MQTT TOPIC HELPERS ──────────────────────────────────────

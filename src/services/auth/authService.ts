@@ -1,15 +1,17 @@
 // ============================================================
 // AUTH: Auth Service
-// Phase-1: mock email/password identity against seed + signup data
+// Phase-1: mock email/password identity against pre-provisioned seed data
 // Phase-2: swap for AWS Cognito (Amplify SDK or direct Cognito API)
 //
-// GOVERNANCE: Authentication is standard email + password only — Sign In,
-// Sign Up, Forgot Password. There is no role selection in this service.
-// Role/tenant/permission assignment is an application-level concern
-// applied after authentication, never part of the auth flow itself.
+// GOVERNANCE: Authentication is email + password only — Sign In, Forgot
+// Password. There is no public self-registration: accounts are created
+// or approved by E-Actuell or a tenant authority (Phase-2: Cognito
+// AdminCreateUser via an internal admin tool, never exposed here).
+// Role/tenant/site/device authorization is scoped and time-bounded via
+// session.access_grants — never part of this service's surface.
 // ============================================================
 
-import { useAuthStore } from '@/store/authStore';
+import { useAuthStore, type AccessScope } from '@/store/authStore';
 import type { UserRole } from '@/types';
 
 /**
@@ -19,31 +21,6 @@ import type { UserRole } from '@/types';
  */
 export async function login(email: string, password: string): Promise<boolean> {
   return useAuthStore.getState().login(email, password);
-}
-
-/**
- * Create a new account with email and password.
- * Phase-2: replace with Cognito.signUp({ username: email, password }).
- * Cognito sends the verification email; no role or tenant is set here.
- */
-export async function signUp(email: string, password: string): Promise<boolean> {
-  return useAuthStore.getState().signUp(email, password);
-}
-
-/**
- * Confirm a new account using the emailed verification code.
- * Phase-2: replace with Cognito.confirmSignUp(email, code).
- */
-export async function confirmSignUp(email: string, code: string): Promise<boolean> {
-  return useAuthStore.getState().confirmSignUp(email, code);
-}
-
-/**
- * Resend the email verification code.
- * Phase-2: replace with Cognito.resendSignUpCode(email).
- */
-export async function resendVerificationCode(email: string): Promise<boolean> {
-  return useAuthStore.getState().resendVerificationCode(email);
 }
 
 /**
@@ -71,18 +48,24 @@ export function logout(): void {
 }
 
 /**
- * Check if the current user has one of the given roles.
- * Role is an application-level attribute, not part of the Cognito identity
- * itself — Phase-2: read from a backend-issued custom:role claim (set by a
- * tenant admin / invite flow after signup, not chosen during auth).
+ * Check if the current user has one of the given roles, optionally scoped
+ * to a tenant/site/zone/device. Phase-2: backed by a UserAccessGrants
+ * lookup (DynamoDB) instead of the in-session mock grant list.
  */
-export function hasRole(roles: UserRole[]): boolean {
-  return useAuthStore.getState().hasRole(roles);
+export function hasRole(roles: UserRole[], scope?: AccessScope): boolean {
+  return useAuthStore.getState().hasRole(roles, scope);
+}
+
+/**
+ * Device-level authorization check. Default-deny; no role bypass.
+ */
+export function canAccessDevice(device_id: string): boolean {
+  return useAuthStore.getState().canAccessDevice(device_id);
 }
 
 /**
  * Get the current authenticated session.
- * Phase-2: return Cognito session + user pool attributes.
+ * Phase-2: return Cognito session + resolved access grants.
  */
 export function getSession() {
   return useAuthStore.getState().session;
