@@ -1,0 +1,16 @@
+{
+  "name": "orbipulse-seed-pipeline",
+  "version": "1.0.0",
+  "description": "OrbiPulse/OrbiDrive seed dataset transformation pipeline (Excel -> DynamoDB-ready JSON)",
+  "main": "scripts/seed-to-dynamodb.js",
+  "scripts": {
+    "seed": "node scripts/seed-to-dynamodb.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1075.0",
+    "@aws-sdk/lib-dynamodb": "^3.1075.0",
+    "fs-extra": "^11.3.5",
+    "xlsx": "^0.18.5"
+  }
+}
